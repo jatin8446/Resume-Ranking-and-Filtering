@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Resume Ranker</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@400;500;600;700;800&family=Dancing+Script:wght@500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    animation: {
+                        'gradient-x': 'gradient-x 3s ease infinite',
+                        'spin-slow': 'spin 4s linear infinite',
+                        'float': 'float 3s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        'gradient-x': {
+                            '0%, 100%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'left center'
+                            },
+                            '50%': {
+                                'background-size': '200% 200%',
+                                'background-position': 'right center'
+                            }
+                        },
+                        'float': {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-5px)' },
+                        }
+                    }
+                }
+            }
+        }
+
+        // On page load or when changing themes, best to add inline in `head` to avoid FOUC
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark');
+        } else {
+            document.documentElement.classList.remove('dark')
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, h4, h5, h6 { font-family: 'Outfit', sans-serif; }
+        
+        /* Custom Animations */
+        @keyframes fadeInUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.98); }
+            to { opacity: 1; transform: scale(1); }
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+        
+        .animate-fade-in-up { animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+        .animate-scale-in { animation: scaleIn 0.5s cubic-bezier(0.16, 1, 0.3, 1) forwards; opacity: 0; }
+        .animate-fade-in { animation: fadeIn 0.4s ease-out forwards; opacity: 0; }
+        
+        .delay-100 { animation-delay: 100ms; }
+        .delay-200 { animation-delay: 200ms; }
+        .delay-300 { animation-delay: 300ms; }
+        .delay-400 { animation-delay: 400ms; }
+        
+        /* Custom Scrollbar */
+        ::-webkit-scrollbar { width: 6px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .dark ::-webkit-scrollbar-thumb { background: #475569; }
+        .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
+    </style>
+</head>
+<body class="min-h-screen text-slate-800 dark:text-zinc-200 bg-[#fafafa] dark:bg-black p-8 overflow-x-hidden selection:bg-blue-100 dark:selection:bg-blue-900/50 selection:text-blue-900 dark:selection:text-blue-200 transition-colors duration-300">
+
+    <!-- Theme Toggle -->
+    <div class="absolute top-8 right-8 z-50 animate-fade-in">
+        <button id="theme-toggle" type="button" class="text-slate-500 dark:text-zinc-400 hover:bg-slate-200 dark:hover:bg-zinc-900 focus:outline-none rounded-xl text-sm p-2.5 transition-colors shadow-sm bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800">
+            <svg id="theme-toggle-dark-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M17.293 13.293A8 8 0 016.707 2.707a8.001 8.001 0 1010.586 10.586z"></path></svg>
+            <svg id="theme-toggle-light-icon" class="hidden w-5 h-5" fill="currentColor" viewBox="0 0 20 20"><path d="M10 2a1 1 0 011 1v1a1 1 0 11-2 0V3a1 1 0 011-1zm4 8a4 4 0 11-8 0 4 4 0 018 0zm-.464 4.95l.707.707a1 1 0 001.414-1.414l-.707-.707a1 1 0 00-1.414 1.414zm2.12-10.607a1 1 0 010 1.414l-.706.707a1 1 0 11-1.414-1.414l.707-.707a1 1 0 011.414 0zM17 11a1 1 0 100-2h-1a1 1 0 100 2h1zm-7 4a1 1 0 011 1v1a1 1 0 11-2 0v-1a1 1 0 011-1zM5.05 6.464A1 1 0 106.465 5.05l-.708-.707a1 1 0 00-1.414 1.414l.707.707zm1.414 8.486l-.707.707a1 1 0 01-1.414-1.414l.707-.707a1 1 0 011.414 1.414zM4 11a1 1 0 100-2H3a1 1 0 000 2h1z" fill-rule="evenodd" clip-rule="evenodd"></path></svg>
+        </button>
+    </div>
+
+    <div class="max-w-6xl mx-auto">
+        <!-- Header -->
+        <div class="text-center mb-12 animate-fade-in-up">
+            <div class="inline-flex items-center justify-center p-2 bg-blue-50 dark:bg-blue-900/30 rounded-2xl mb-4 border border-blue-100 dark:border-blue-800/50 transition-colors animate-float">
+                <svg class="w-8 h-8 text-blue-600 dark:text-blue-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+            </div>
+            <h1 class="text-5xl md:text-6xl font-extrabold mb-5 pb-2 leading-tight tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-indigo-400 to-purple-500 animate-gradient-x drop-shadow-sm">Resume Ranking & Filtering System</h1>
+            <p class="text-zinc-500 dark:text-zinc-400 text-3xl font-semibold mx-auto transition-colors whitespace-nowrap overflow-hidden text-ellipsis" style="font-family: 'Dancing Script', cursive;">Smartly Match, Score, and Rank Candidates Against Your Hiring Needs Using AI</p>
+        </div>
+
+        <!-- Stats Row -->
+        <div class="grid grid-cols-2 md:grid-cols-4 gap-6 mb-10 animate-fade-in-up delay-100">
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] dark:shadow-[0_2px_10px_-3px_rgba(0,0,0,0.5)] border border-slate-100 dark:border-zinc-800/50 p-6 border-t-4 border-t-blue-500 hover:-translate-y-1 transition-all duration-300">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-blue-500"></div>
+                    <p class="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider transition-colors">Total Resumes</p>
+                </div>
+                <p class="text-4xl font-extrabold text-slate-900 dark:text-white transition-colors">{{ total_resumes | default('0') }}</p>
+            </div>
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] dark:shadow-[0_2px_10px_-3px_rgba(0,0,0,0.5)] border border-slate-100 dark:border-zinc-800/50 p-6 border-t-4 border-t-indigo-500 hover:-translate-y-1 transition-all duration-300">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-indigo-500"></div>
+                    <p class="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider transition-colors">Highest Match</p>
+                </div>
+                <p class="text-4xl font-extrabold text-indigo-600 dark:text-indigo-400 transition-colors">{{ highest_score | default(0) | round | int }}%</p>
+            </div>
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] dark:shadow-[0_2px_10px_-3px_rgba(0,0,0,0.5)] border border-slate-100 dark:border-zinc-800/50 p-6 border-t-4 border-t-emerald-500 hover:-translate-y-1 transition-all duration-300">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div>
+                    <p class="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider transition-colors">Selected</p>
+                </div>
+                <p class="text-4xl font-extrabold text-emerald-600 dark:text-emerald-400 transition-colors">{{ selected_count | default('0') }}</p>
+            </div>
+            <div class="bg-white dark:bg-zinc-900 rounded-2xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.1)] dark:shadow-[0_2px_10px_-3px_rgba(0,0,0,0.5)] border border-slate-100 dark:border-zinc-800/50 p-6 border-t-4 border-t-amber-500 hover:-translate-y-1 transition-all duration-300">
+                <div class="flex items-center gap-2 mb-2">
+                    <div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div>
+                    <p class="text-slate-500 dark:text-zinc-400 text-[11px] font-bold uppercase tracking-wider transition-colors">Consider</p>
+                </div>
+                <p class="text-4xl font-extrabold text-amber-500 dark:text-amber-400 transition-colors">{{ consider_count | default('0') }}</p>
+            </div>
+        </div>
+
+        <!-- Main Form -->
+        <form method="POST" enctype="multipart/form-data" class="bg-white dark:bg-zinc-900 rounded-[32px] shadow-[0_8px_30px_rgb(0,0,0,0.04)] dark:shadow-[0_8px_30px_rgb(0,0,0,0.2)] border border-slate-100 dark:border-zinc-800 p-8 md:p-10 mb-12 animate-fade-in-up delay-200 transition-colors duration-300">
+            <h2 class="text-2xl font-bold text-slate-900 dark:text-white mb-8 flex items-center gap-3 transition-colors">
+                <svg class="w-6 h-6 text-zinc-400 dark:text-zinc-500 animate-spin-slow" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+                Analysis Configuration
+            </h2>
+            <div class="grid grid-cols-1 lg:grid-cols-2 gap-12">
+                <!-- Left: JD & Filters -->
+                <div class="space-y-8">
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-zinc-300 mb-3 transition-colors">Job Description</label>
+                        <textarea name="job_desc" rows="4" class="w-full rounded-2xl border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-white shadow-inner focus:bg-white dark:focus:bg-zinc-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 p-5 text-sm transition-all resize-none outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500" placeholder="Paste the complete job description here...">{{ job_desc | default('') }}</textarea>
+                        <div class="mt-4 flex items-center gap-3 bg-white dark:bg-zinc-900 p-2 pl-4 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-sm transition-colors">
+                            <span class="text-sm font-medium text-slate-500 dark:text-zinc-400">Or upload JD PDF:</span>
+                            <input type="file" name="jd_pdf" accept=".pdf" class="block w-full text-sm text-slate-500 dark:text-zinc-400 file:mr-4 file:py-2.5 file:px-5 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-slate-100 dark:file:bg-slate-700 file:text-slate-700 dark:file:text-slate-200 hover:file:bg-slate-200 dark:hover:file:bg-slate-600 transition-colors cursor-pointer outline-none">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-zinc-300 mb-3 transition-colors">Min Experience (Yrs)</label>
+                            <div class="relative">
+                                <input type="number" name="min_exp" value="{{ min_exp | default('') }}" class="w-full rounded-2xl border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-zinc-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 p-4 pl-12 text-sm transition-all outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500" placeholder="0">
+                                <svg class="w-5 h-5 text-slate-400 dark:text-zinc-500 absolute left-4 top-1/2 -translate-y-1/2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-zinc-300 mb-3 transition-colors">Min Match %</label>
+                            <div class="relative">
+                                <input type="number" name="min_percent" value="{{ min_percent | default('') }}" class="w-full rounded-2xl border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-zinc-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 p-4 pl-12 text-sm transition-all outline-none placeholder:text-slate-400 dark:placeholder:text-slate-500" placeholder="0">
+                                <svg class="w-5 h-5 text-slate-400 dark:text-zinc-500 absolute left-4 top-1/2 -translate-y-1/2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"></path></svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-semibold text-slate-700 dark:text-zinc-300 mb-3 transition-colors">Must-Have Skills <span class="font-normal text-slate-400 dark:text-zinc-500 ml-1">(comma separated)</span></label>
+                        <div class="relative">
+                            <input type="text" name="must_have" value="{{ must_have | default('') }}" class="w-full rounded-2xl border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-950 text-slate-900 dark:text-white focus:bg-white dark:focus:bg-zinc-900 focus:border-blue-500 focus:ring-4 focus:ring-blue-500/10 p-4 pl-12 text-sm transition-all outline-none placeholder:text-slate-400 dark:placeholder:text-zinc-500" placeholder="e.g. react, python, docker">
+                            <svg class="w-5 h-5 text-slate-400 dark:text-zinc-500 absolute left-4 top-1/2 -translate-y-1/2 animate-pulse" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-5.714 2.143L13 21l-2.286-6.857L5 12l5.714-2.143L13 3z"></path></svg>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right: Resumes Dropzone -->
+                <div class="flex flex-col h-full">
+                    <label class="block text-sm font-semibold text-slate-700 dark:text-zinc-300 mb-3 transition-colors">Upload Resumes</label>
+                    <div class="flex-1 w-full flex justify-center px-6 pt-5 pb-6 border-2 border-slate-200 dark:border-zinc-800 border-dashed rounded-3xl hover:bg-slate-50 dark:hover:bg-zinc-800 hover:border-blue-400 dark:hover:border-blue-500 transition-all relative group cursor-pointer bg-white dark:bg-zinc-950" id="dropzone-container">
+                        <div class="space-y-5 text-center flex flex-col items-center justify-center">
+                            <div class="w-20 h-20 bg-slate-50 dark:bg-zinc-900 rounded-full shadow-sm border border-slate-100 dark:border-zinc-700 flex items-center justify-center group-hover:scale-110 group-hover:bg-blue-50 dark:group-hover:bg-blue-900/30 group-hover:border-blue-100 dark:group-hover:border-blue-800 transition-all duration-300">
+                                <svg class="h-10 w-10 text-slate-400 dark:text-zinc-500 group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors" stroke="currentColor" fill="none" viewBox="0 0 48 48" aria-hidden="true">
+                                    <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                                </svg>
+                            </div>
+                            <div class="flex flex-col text-sm text-slate-600 dark:text-zinc-400">
+                                <label for="file-upload" class="relative cursor-pointer bg-transparent rounded-md font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-blue-500 dark:focus-within:ring-offset-slate-800 text-lg transition-colors">
+                                    <span id="file-label">Select PDF files</span>
+                                    <input id="file-upload" name="resume" type="file" multiple accept=".pdf" class="sr-only">
+                                </label>
+                                <p class="pl-1 text-slate-400 dark:text-zinc-500 mt-2 font-medium">or drag and drop them here</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-10 pt-8 border-t border-slate-100 dark:border-zinc-800/50">
+                <button type="submit" name="action" value="analyze" class="w-full flex justify-center items-center gap-2 py-4 px-4 border border-transparent rounded-2xl shadow-[0_4px_14px_0_rgba(0,118,255,0.39)] dark:shadow-[0_4px_14px_0_rgba(0,118,255,0.2)] text-base font-bold text-white bg-blue-600 hover:bg-blue-700 hover:shadow-[0_6px_20px_rgba(0,118,255,0.23)] dark:hover:shadow-[0_6px_20px_rgba(0,118,255,0.4)] hover:-translate-y-0.5 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-slate-800 transition-all duration-300">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+                    Analyze Candidates
+                </button>
+            </div>
+        </form>
+
+        <!-- Results Area -->
+        {% if results %}
+        <div class="mb-12 animate-fade-in-up delay-300">
+            <div class="flex justify-between items-end mb-8">
+                <h3 class="text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight transition-colors">
+                    Candidate Rankings
+                </h3>
+                <span class="text-sm font-semibold bg-white dark:bg-zinc-900 text-slate-600 dark:text-zinc-300 px-4 py-2 rounded-xl border border-slate-200 dark:border-zinc-800 shadow-sm transition-colors">{{ results|length }} Candidates Found</span>
+            </div>
+            
+            <!-- Sleek Grid List -->
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {% for r in results %}
+                <div class="bg-white dark:bg-zinc-900 rounded-[24px] shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:shadow-[0_2px_10px_-3px_rgba(0,0,0,0.5)] hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] dark:hover:shadow-[0_8px_30px_rgb(0,0,0,0.4)] hover:-translate-y-1.5 transition-all duration-300 border border-slate-100 dark:border-zinc-800/50 overflow-hidden flex flex-col group cursor-pointer animate-scale-in" style="animation-delay: {{ (loop.index0 * 100) + 400 }}ms;" onclick="openPanel({{ loop.index0 }})">
+                    
+                    <!-- Card Header -->
+                    <div class="p-6 border-b border-slate-50 dark:border-zinc-800/50 flex justify-between items-start relative overflow-hidden transition-colors">
+                        <!-- Subtle Background Accent -->
+                        {% if r.status == 'SELECTED' %}
+                            <div class="absolute -right-10 -top-10 w-32 h-32 bg-emerald-500/10 dark:bg-emerald-500/5 rounded-full blur-2xl"></div>
+                        {% elif r.status == 'CONSIDER' %}
+                            <div class="absolute -right-10 -top-10 w-32 h-32 bg-amber-500/10 dark:bg-amber-500/5 rounded-full blur-2xl"></div>
+                        {% else %}
+                            <div class="absolute -right-10 -top-10 w-32 h-32 bg-slate-500/10 dark:bg-slate-500/5 rounded-full blur-2xl"></div>
+                        {% endif %}
+
+                        <div class="flex-1 min-w-0 pr-4 relative z-10">
+                            <h4 class="font-bold text-xl text-slate-900 dark:text-white mb-2 truncate transition-colors" title="{{ r.name }}">{{ r.name }}</h4>
+                            {% if r.status == 'SELECTED' %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-500/20 transition-colors">
+                                    <div class="w-1.5 h-1.5 rounded-full bg-emerald-500"></div> Selected
+                                </span>
+                            {% elif r.status == 'CONSIDER' %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border border-amber-100 dark:border-amber-500/20 transition-colors">
+                                    <div class="w-1.5 h-1.5 rounded-full bg-amber-500"></div> Consider
+                                </span>
+                            {% else %}
+                                <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider bg-slate-50 dark:bg-zinc-800/50 text-slate-600 dark:text-zinc-300 border border-slate-100 dark:border-zinc-700 transition-colors">
+                                    <div class="w-1.5 h-1.5 rounded-full bg-slate-400 dark:bg-slate-500"></div> Rejected
+                                </span>
+                            {% endif %}
+                        </div>
+                        <div class="text-right shrink-0 relative z-10">
+                            <div class="text-3xl font-black tracking-tight transition-colors {% if r.percent >= 60 %}text-emerald-600 dark:text-emerald-400{% elif r.percent >= 40 %}text-amber-500 dark:text-amber-400{% else %}text-slate-400 dark:text-zinc-500{% endif %}">
+                                {{ r.percent|round|int }}<span class="text-xl opacity-50">%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Card Body -->
+                    <div class="p-6 flex-1 flex flex-col bg-white dark:bg-zinc-900 transition-colors">
+                        <div class="flex items-center gap-3 text-sm font-medium text-slate-600 dark:text-zinc-400 mb-5 transition-colors">
+                            <svg class="w-4 h-4 text-slate-400 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                            {{ 'Fresher' if r.experience == 0 else r.experience ~ ' Years Experience' }}
+                        </div>
+
+                        <div class="mb-6 flex flex-wrap gap-2">
+                            {% if r.matched_skills %}
+                                {% for skill in r.matched_skills[:3] %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full bg-slate-50 dark:bg-zinc-800/50 text-slate-700 dark:text-zinc-300 text-xs font-semibold border border-slate-200/60 dark:border-zinc-700/50 transition-colors">
+                                        {{ skill }}
+                                    </span>
+                                {% endfor %}
+                                {% if r.matched_skills|length > 3 %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full bg-white dark:bg-zinc-900 text-slate-400 dark:text-zinc-500 text-xs font-semibold border border-slate-100 dark:border-zinc-800 transition-colors">
+                                        +{{ r.matched_skills|length - 3 }}
+                                    </span>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-xs text-slate-400 dark:text-zinc-500 italic font-medium transition-colors">No exact skills matched.</span>
+                            {% endif %}
+                            
+                            {% if r.missing_skills %}
+                                {% for skill in r.missing_skills[:2] %}
+                                    <span class="inline-flex items-center px-3 py-1 rounded-full bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 text-xs font-semibold border border-red-200/60 dark:border-red-500/20 transition-colors" title="Missing Skill">
+                                        <svg class="w-3 h-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                                        {{ skill }}
+                                    </span>
+                                {% endfor %}
+                            {% endif %}
+                        </div>
+
+                        <div class="mt-auto pt-5 border-t border-slate-50 dark:border-zinc-800/50 transition-colors">
+                            <div class="w-full flex justify-between items-center text-sm font-bold text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors">
+                                View Profile
+                                <svg class="w-4 h-4 transform group-hover:translate-x-1 transition-transform" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% elif total_resumes and total_resumes > 0 %}
+        <div class="text-center py-24 bg-white dark:bg-zinc-900 rounded-3xl shadow-[0_2px_10px_-3px_rgba(6,81,237,0.05)] dark:shadow-[0_2px_10px_-3px_rgba(0,0,0,0.5)] border border-slate-100 dark:border-zinc-800/50 animate-fade-in-up delay-300 transition-colors duration-300">
+            <div class="w-20 h-20 bg-slate-50 dark:bg-zinc-800/50 rounded-full flex items-center justify-center mx-auto mb-6 transition-colors">
+                <svg class="h-10 w-10 text-slate-300 dark:text-zinc-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+            </div>
+            <h3 class="text-2xl font-bold text-slate-900 dark:text-white mb-2 font-outfit transition-colors">No candidates matched</h3>
+            <p class="text-slate-500 dark:text-zinc-400 text-base max-w-sm mx-auto font-medium transition-colors">Try lowering your minimum Match % or Experience requirements to see more candidates.</p>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Slide-Over Panel Components -->
+    <div id="slide-over-backdrop" class="fixed inset-0 bg-slate-900/20 dark:bg-black/60 backdrop-blur-sm z-40 hidden transition-opacity opacity-0 duration-300" onclick="closePanel()"></div>
+
+    <div id="slide-over-panel" class="fixed inset-y-0 right-0 w-full md:w-[500px] bg-white dark:bg-zinc-900 shadow-2xl z-50 transform translate-x-full transition-transform duration-500 cubic-bezier(0.16, 1, 0.3, 1) flex flex-col border-l border-slate-100 dark:border-zinc-800">
+        
+        <!-- Header (Frosted Glass Style) -->
+        <div id="panel-header" class="px-8 py-10 text-slate-900 dark:text-white shrink-0 relative overflow-hidden bg-slate-50/80 dark:bg-zinc-900/80 backdrop-blur-md border-b border-slate-200/60 dark:border-zinc-800/60 transition-colors">
+            <div class="flex justify-between items-start relative z-10">
+                <div class="pr-6">
+                    <span id="panel-status" class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider mb-4 border shadow-sm transition-colors">
+                        STATUS
+                    </span>
+                    <h2 id="panel-name" class="text-4xl font-extrabold tracking-tight leading-tight text-slate-900 dark:text-white transition-colors">Name</h2>
+                </div>
+                <button onclick="closePanel()" class="text-slate-400 dark:text-zinc-500 hover:text-slate-700 dark:hover:text-slate-300 hover:bg-slate-200/50 dark:hover:bg-zinc-800 p-2.5 rounded-full transition-colors shrink-0 bg-white dark:bg-zinc-900 shadow-sm border border-slate-100 dark:border-zinc-800">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path></svg>
+                </button>
+            </div>
+
+            <div class="mt-8 flex items-center gap-6 relative z-10">
+                <div class="bg-white dark:bg-zinc-800/50 px-5 py-3 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-700 transition-colors">
+                    <div class="text-[10px] font-bold text-slate-400 dark:text-zinc-400 uppercase tracking-widest mb-1 transition-colors">Match Score</div>
+                    <div id="panel-score" class="text-4xl font-black text-slate-900 dark:text-white transition-colors">0%</div>
+                </div>
+                <div class="flex-1">
+                    <div class="h-3 bg-slate-100 dark:bg-zinc-800 rounded-full overflow-hidden shadow-inner transition-colors">
+                        <div id="panel-progress" class="h-full bg-blue-500 rounded-full transition-all duration-1000 ease-out w-0 relative">
+                            <div class="absolute top-0 right-0 bottom-0 w-10 bg-white/30 blur-[4px]"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Body -->
+        <div class="flex-1 overflow-y-auto p-8 flex flex-col gap-8 bg-white dark:bg-zinc-900 transition-colors">
+            
+            <!-- AI Explanation -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2 transition-colors">
+                    <svg class="w-4 h-4 text-purple-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+                    AI Explanation
+                </h3>
+                <div id="panel-explanation" class="space-y-3 bg-slate-50 dark:bg-zinc-800/30 p-5 rounded-2xl border border-slate-100 dark:border-zinc-800 text-sm font-medium text-slate-700 dark:text-zinc-300">
+                    <!-- AI injected here -->
+                </div>
+            </div>
+
+            <div class="w-full h-px bg-slate-100 dark:bg-zinc-800/50 transition-colors"></div>
+
+            <!-- Missing Skills Recommendation -->
+            <div id="panel-missing-section">
+                <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2 transition-colors">
+                    <svg class="w-4 h-4 text-red-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"></path></svg>
+                    Missing Skills
+                </h3>
+                <div id="panel-missing-skills" class="flex flex-wrap gap-2">
+                    <!-- Skills injected here -->
+                </div>
+            </div>
+
+            <div class="w-full h-px bg-slate-100 dark:bg-zinc-800/50 transition-colors"></div>
+
+            <!-- Skills -->
+            <div>
+                <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest mb-4 flex items-center gap-2 transition-colors">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z"></path></svg>
+                    Matched Core Skills
+                </h3>
+                <div id="panel-skills" class="flex flex-wrap gap-2">
+                    <!-- Skills injected here -->
+                </div>
+            </div>
+
+            <div class="w-full h-px bg-slate-100 dark:bg-zinc-800/50 transition-colors"></div>
+
+            <!-- Contact Info -->
+            <div class="space-y-6">
+                <h3 class="text-xs font-bold text-slate-400 dark:text-zinc-500 uppercase tracking-widest flex items-center gap-2 transition-colors">
+                    <svg class="w-4 h-4 animate-pulse text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2"></path></svg>
+                    Candidate Details
+                </h3>
+                <div class="grid grid-cols-1 gap-4">
+                    <div class="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/30 border border-slate-100 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800/50 transition-colors">
+                        <div class="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center text-slate-500 dark:text-zinc-400 shadow-sm border border-slate-200 dark:border-zinc-700 shrink-0 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] text-slate-500 dark:text-zinc-400 font-medium mb-0.5 transition-colors">Email Address</p>
+                            <a id="panel-email" href="#" class="text-sm font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 truncate block transition-colors">email@example.com</a>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/30 border border-slate-100 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800/50 transition-colors">
+                        <div class="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center text-slate-500 dark:text-zinc-400 shadow-sm border border-slate-200 dark:border-zinc-700 shrink-0 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z"></path></svg>
+                        </div>
+                        <div class="min-w-0">
+                            <p class="text-[11px] text-slate-500 dark:text-zinc-400 font-medium mb-0.5 transition-colors">Phone Number</p>
+                            <a id="panel-phone" href="#" class="text-sm font-semibold text-slate-900 dark:text-white hover:text-blue-600 dark:hover:text-blue-400 truncate block transition-colors">Not found</a>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-4 p-4 rounded-2xl bg-slate-50 dark:bg-zinc-800/30 border border-slate-100 dark:border-zinc-800 hover:bg-slate-100 dark:hover:bg-zinc-800/50 transition-colors">
+                        <div class="w-10 h-10 rounded-full bg-white dark:bg-zinc-900 flex items-center justify-center text-slate-500 dark:text-zinc-400 shadow-sm border border-slate-200 dark:border-zinc-700 shrink-0 transition-colors">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+                        </div>
+                        <div>
+                            <p class="text-[11px] text-slate-500 dark:text-zinc-400 font-medium mb-0.5 transition-colors">Total Experience</p>
+                            <p id="panel-exp" class="text-sm font-semibold text-slate-900 dark:text-white transition-colors">0 Years</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Panel Footer -->
+        <div class="p-8 border-t border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 shrink-0 transition-colors">
+            <a id="panel-resume-btn" href="#" target="_blank" class="w-full flex justify-center items-center gap-2 py-4 px-4 rounded-2xl shadow-[0_4px_14px_0_rgba(0,118,255,0.39)] dark:shadow-[0_4px_14px_0_rgba(0,118,255,0.2)] text-base font-bold text-white bg-blue-600 hover:bg-blue-700 hover:shadow-[0_6px_20px_rgba(0,118,255,0.23)] dark:hover:shadow-[0_6px_20px_rgba(0,118,255,0.4)] focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 dark:focus:ring-offset-slate-800 transition-all hover:-translate-y-0.5">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                View Original PDF Resume
+            </a>
+        </div>
+    </div>
+
+    <!-- Data Injection -->
+    <script>
+        const candidates = [
+            {% if results %}
+            {% for r in results %}
+            {
+                name: {{ r.name|tojson }},
+                filename: {{ r.filename|tojson }},
+                percent: {{ r.percent|tojson }},
+                status: {{ r.status|tojson }},
+                email: {{ r.email|tojson }},
+                phone: {{ r.phone|tojson }},
+                experience: {{ r.experience|tojson }},
+                skills: {{ r.matched_skills|tojson }},
+                missing_skills: {{ r.missing_skills|tojson }},
+                ai_explanation: {{ r.ai_explanation|tojson }}
+            }{% if not loop.last %},{% endif %}
+            {% endfor %}
+            {% endif %}
+        ];
+
+        const panel = document.getElementById('slide-over-panel');
+        const backdrop = document.getElementById('slide-over-backdrop');
+        const progress = document.getElementById('panel-progress');
+        const statusBadge = document.getElementById('panel-status');
+
+        function openPanel(index) {
+            const data = candidates[index];
+            
+            // Populate data
+            document.getElementById('panel-name').textContent = data.name;
+            
+            // Animate Score Counter
+            const scoreEl = document.getElementById('panel-score');
+            const targetScore = Math.round(data.percent);
+            let currentScore = 0;
+            scoreEl.textContent = '0%';
+            
+            // Clear any existing interval just in case
+            if(window.scoreInterval) clearInterval(window.scoreInterval);
+            
+            if (targetScore > 0) {
+                const duration = 800; // ms
+                const intervalTime = Math.max(duration / targetScore, 10);
+                
+                window.scoreInterval = setInterval(() => {
+                    if (currentScore >= targetScore) {
+                        clearInterval(window.scoreInterval);
+                        scoreEl.textContent = targetScore + '%';
+                    } else {
+                        currentScore++;
+                        scoreEl.textContent = currentScore + '%';
+                    }
+                }, intervalTime);
+            } else {
+                scoreEl.textContent = '0%';
+            }
+            
+            const expEl = document.getElementById('panel-exp');
+            if (data.experience === 0) {
+                expEl.textContent = 'Fresher';
+            } else {
+                expEl.textContent = data.experience + (data.experience === 1 ? ' Year' : ' Years');
+            }
+            
+            const emailEl = document.getElementById('panel-email');
+            emailEl.textContent = data.email;
+            emailEl.href = "mailto:" + data.email;
+            
+            const phoneEl = document.getElementById('panel-phone');
+            phoneEl.textContent = data.phone;
+            if(data.phone !== 'Not found') {
+                phoneEl.href = "tel:" + data.phone;
+            } else {
+                phoneEl.removeAttribute('href');
+            }
+
+            const btn = document.getElementById('panel-resume-btn');
+            if (btn) btn.href = "/uploads/" + data.filename;
+
+            // AI Explanation
+            const aiContainer = document.getElementById('panel-explanation');
+            aiContainer.innerHTML = '';
+            if (data.ai_explanation && data.ai_explanation.length > 0) {
+                data.ai_explanation.forEach(exp => {
+                    const div = document.createElement('div');
+                    div.className = "flex gap-2 items-start";
+                    div.innerHTML = `<span>${exp.startsWith('✔') ? '✅' : '❌'}</span><span class="flex-1">${exp.substring(1).trim()}</span>`;
+                    aiContainer.appendChild(div);
+                });
+            }
+
+            // Missing Skills
+            const missingSkillsContainer = document.getElementById('panel-missing-skills');
+            const missingSection = document.getElementById('panel-missing-section');
+            missingSkillsContainer.innerHTML = '';
+            if (data.missing_skills && data.missing_skills.length > 0) {
+                missingSection.style.display = 'block';
+                data.missing_skills.forEach(skill => {
+                    const span = document.createElement('span');
+                    span.className = "inline-flex items-center px-4 py-2 rounded-xl bg-red-50 dark:bg-red-500/10 text-red-700 dark:text-red-400 text-sm font-semibold border border-red-200/60 dark:border-red-500/20 transition-colors";
+                    span.textContent = skill;
+                    missingSkillsContainer.appendChild(span);
+                });
+            } else {
+                missingSection.style.display = 'none';
+            }
+
+            // Skills
+            const skillsContainer = document.getElementById('panel-skills');
+            skillsContainer.innerHTML = '';
+            if (data.skills && data.skills.length > 0) {
+                data.skills.forEach(skill => {
+                    const span = document.createElement('span');
+                    span.className = "inline-flex items-center px-4 py-2 rounded-xl bg-slate-50 dark:bg-zinc-800/50 text-slate-700 dark:text-zinc-300 text-sm font-semibold border border-slate-200/60 dark:border-zinc-700/50 transition-colors";
+                    span.textContent = skill;
+                    skillsContainer.appendChild(span);
+                });
+            } else {
+                skillsContainer.innerHTML = '<span class="text-sm text-slate-400 dark:text-zinc-500 italic font-medium transition-colors">No exact target skills matched.</span>';
+            }
+
+            // Theme colors based on status
+            statusBadge.innerHTML = '';
+            const dot = document.createElement('div');
+            dot.className = "w-1.5 h-1.5 rounded-full";
+            
+            let statusText = document.createTextNode(" " + data.status);
+            
+            if (data.status === 'SELECTED') {
+                statusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider mb-4 border bg-emerald-50 dark:bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200/60 dark:border-emerald-500/20 transition-colors";
+                dot.className += " bg-emerald-500";
+                progress.className = "h-full bg-emerald-500 rounded-full transition-all duration-1000 ease-out w-0 relative";
+            } else if (data.status === 'CONSIDER') {
+                statusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider mb-4 border bg-amber-50 dark:bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200/60 dark:border-amber-500/20 transition-colors";
+                dot.className += " bg-amber-500";
+                progress.className = "h-full bg-amber-500 rounded-full transition-all duration-1000 ease-out w-0 relative";
+            } else {
+                statusBadge.className = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider mb-4 border bg-slate-100 dark:bg-zinc-800/50 text-slate-600 dark:text-zinc-300 border-slate-200 dark:border-zinc-700 transition-colors";
+                dot.className += " bg-slate-400 dark:bg-slate-500";
+                progress.className = "h-full bg-slate-400 dark:bg-slate-500 rounded-full transition-all duration-1000 ease-out w-0 relative";
+            }
+            
+            statusBadge.appendChild(dot);
+            statusBadge.appendChild(statusText);
+
+            // Show UI
+            backdrop.classList.remove('hidden');
+            setTimeout(() => {
+                backdrop.classList.remove('opacity-0');
+                panel.classList.remove('translate-x-full');
+                
+                // Animate progress bar
+                setTimeout(() => {
+                    progress.style.width = data.percent + '%';
+                }, 300);
+            }, 10);
+        }
+
+        function closePanel() {
+            backdrop.classList.add('opacity-0');
+            panel.classList.add('translate-x-full');
+            progress.style.width = '0%';
+            
+
+            
+            setTimeout(() => {
+                backdrop.classList.add('hidden');
+            }, 300);
+        }
+
+        // File upload drag & drop logic
+        const fileInput = document.getElementById('file-upload');
+        const fileLabel = document.getElementById('file-label');
+        const dropZone = document.getElementById('dropzone-container');
+
+        if(fileInput && fileLabel && dropZone) {
+            fileInput.addEventListener('change', (e) => {
+                if(e.target.files.length > 0) {
+                    fileLabel.textContent = `${e.target.files.length} PDF(s) Selected`;
+                    dropZone.classList.add('border-blue-400', 'bg-blue-50/50', 'dark:bg-blue-900/20', 'dark:border-blue-500');
+                } else {
+                    fileLabel.textContent = 'Select PDF files';
+                    dropZone.classList.remove('border-blue-400', 'bg-blue-50/50', 'dark:bg-blue-900/20', 'dark:border-blue-500');
+                }
+            });
+
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, preventDefaults, false);
+            });
+
+            function preventDefaults (e) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+
+            ['dragenter', 'dragover'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.add('border-blue-400', 'bg-blue-50/50', 'dark:bg-blue-900/20', 'dark:border-blue-500');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                dropZone.addEventListener(eventName, () => {
+                    dropZone.classList.remove('border-blue-400', 'bg-blue-50/50', 'dark:bg-blue-900/20', 'dark:border-blue-500');
+                }, false);
+            });
+
+            dropZone.addEventListener('drop', (e) => {
+                let dt = e.dataTransfer;
+                let files = dt.files;
+                fileInput.files = files;
+                fileInput.dispatchEvent(new Event('change'));
+            }, false);
+        }
+
+        // Theme Toggle Logic
+        var themeToggleDarkIcon = document.getElementById('theme-toggle-dark-icon');
+        var themeToggleLightIcon = document.getElementById('theme-toggle-light-icon');
+
+        // Change the icons inside the button based on previous settings
+        if (localStorage.getItem('color-theme') === 'dark' || (!('color-theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            themeToggleLightIcon.classList.remove('hidden');
+        } else {
+            themeToggleDarkIcon.classList.remove('hidden');
+        }
+
+        var themeToggleBtn = document.getElementById('theme-toggle');
+
+        themeToggleBtn.addEventListener('click', function() {
+            // toggle icons inside button
+            themeToggleDarkIcon.classList.toggle('hidden');
+            themeToggleLightIcon.classList.toggle('hidden');
+
+            // if set via local storage previously
+            if (localStorage.getItem('color-theme')) {
+                if (localStorage.getItem('color-theme') === 'light') {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                } else {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                }
+            // if NOT set via local storage previously
+            } else {
+                if (document.documentElement.classList.contains('dark')) {
+                    document.documentElement.classList.remove('dark');
+                    localStorage.setItem('color-theme', 'light');
+                } else {
+                    document.documentElement.classList.add('dark');
+                    localStorage.setItem('color-theme', 'dark');
+                }
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,33 @@
+{
+  "Tech & Data": [
+    "python", "sql", "excel", "powerbi", "machine learning", "artificial intelligence",
+    "aws", "azure", "gcp", "cloud", "docker", "kubernetes", "java", "cplusplus", "csharp",
+    "javascript", "typescript", "react", "angular", "vue", "node", "django", "flask",
+    "testing", "selenium", "automation", "linux", "git", "tableau", "html", "css",
+    "php", "ruby", "swift", "kotlin", "data analysis", "data science", "big data",
+    "mysql", "postgresql", "mongodb", "devops", "rest api", "graphql", "jira"
+  ],
+  "Sales & Marketing": [
+    "sales", "marketing", "b2b", "b2c", "seo", "sem", "content marketing",
+    "social media", "lead generation", "market research", "crm", "salesforce",
+    "hubspot", "customer service", "email marketing", "branding", "copywriting",
+    "advertising", "cold calling", "account management", "business development"
+  ],
+  "Business, Finance & HR": [
+    "finance", "accounting", "budgeting", "financial analysis", "bookkeeping",
+    "payroll", "tax", "audit", "human resources", "recruiting", "onboarding",
+    "talent acquisition", "employee relations", "operations", "supply chain",
+    "logistics", "project management", "agile", "scrum", "event planning"
+  ],
+  "Engineering, Design & Healthcare": [
+    "autocad", "solidworks", "manufacturing", "quality assurance", "qa",
+    "ui", "ux", "graphic design", "photoshop", "illustrator", "figma",
+    "nursing", "patient care", "medical terminology", "clinical research"
+  ],
+  "General & Soft Skills": [
+    "communication", "leadership", "problem solving", "time management",
+    "teamwork", "interpersonal", "critical thinking", "analytical",
+    "presentation", "public speaking", "management", "customer satisfaction",
+    "negotiation", "adaptability", "organization", "multitasking"
+  ]
+}
